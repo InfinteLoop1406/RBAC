@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            color: #333;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            background: #fff;
+            border: 1px solid #ddd;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        b {
+            color: #555;
+        }
+        .error {
+            color: red;
+            margin-bottom: 10px;
+        }
+        .logout {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: #fff;
+            text-decoration: none;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .logout:hover {
+            background-color: #0056b3;
+        }
+        .loading {
+            font-size: 14px;
+            color: #007BFF;
+        }
+    </style>
+</head>
+<body>
+    <div id="display" class="error"></div>
+    <h1>User List</h1>
+    <div class="loading" id="loading" style="display:none;">Loading users...</div>
+    <ul id="userList"></ul>
+    <button class="logout" onclick="window.location.href='/logout'">Logout</button>
+
+    <script>
+        const userList = document.getElementById("userList");
+        const displayError = document.getElementById("display");
+        const loadingIndicator = document.getElementById("loading");
+
+        // Function to display an error message
+        const showError = (message) => {
+            displayError.textContent = message;
+            document.body.scrollTop = 0;
+            document.documentElement.scrollTop = 0;
+        };
+
+        // Function to handle API requests
+        const handleRequest = async (url, method, body = {}) => {
+            try {
+                const response = await fetch(url, {
+                    method,
+                    body: JSON.stringify(body),
+                    headers: { "Content-Type": "application/json" },
+                });
+                if (!response.ok) throw new Error(`Error: ${response.statusText}`);
+                return await response.json();
+            } catch (error) {
+                console.error("API request error:", error);
+                showError("An error occurred. Please try again.");
+            }
+        };
+
+        // Function to fetch and display users
+        const getUsers = async () => {
+            try {
+                loadingIndicator.style.display = "block";
+                const response = await fetch("/api/auth/getUsers");
+                const data = await response.json();
+
+                if (data.user && data.user.length > 0) {
+                    data.user.forEach((user) => {
+                        if (user.username !== "admin") {
+                            const li = document.createElement("li");
+                            li.innerHTML = `
+                                <b>Username:</b> ${user.username}<br/>
+                                <b>Role:</b> ${user.role}<br/>
+                                <button class="edit" data-id="${user._id}">Edit Role</button>
+                                <button class="delete" data-id="${user._id}">Delete User</button>
+                            `;
+                            userList.appendChild(li);
+                        }
+                    });
+
+                    addEventListeners();
+                } else {
+                    userList.innerHTML = "<li>No users found</li>";
+                }
+            } catch (error) {
+                console.error("Error fetching users:", error);
+                userList.innerHTML = "<li>Error fetching user data. Please try again later.</li>";
+            } finally {
+                loadingIndicator.style.display = "none";
+            }
+        };
+
+        // Function to add event listeners to buttons
+        const addEventListeners = () => {
+            document.querySelectorAll(".edit").forEach((button) =>
+                button.addEventListener("click", async () => {
+                    const userId = button.dataset.id;
+                    const result = await handleRequest("/api/auth/update", "PUT", { id: userId, role: "admin" });
+                    if (result && result.message) showError(result.message);
+                    else location.reload();
+                })
+            );
+
+            document.querySelectorAll(".delete").forEach((button) =>
+                button.addEventListener("click", async () => {
+                    const userId = button.dataset.id;
+                    const result = await handleRequest("/api/auth/delete", "DELETE", { id: userId });
+                    if (result && result.message) showError(result.message);
+                    else location.reload();
+                })
+            );
+        };
+
+        // Fetch and display users on page load
+        getUsers();
+    </script>
+</body>
+</html>

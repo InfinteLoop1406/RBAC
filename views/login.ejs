@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        form {
+            background: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        input[type="submit"] {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            width: 100%;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+
+        .error {
+            color: white;
+            background-color: red;
+            padding: 5px;
+            text-align: center;
+            border-radius: 3px;
+            margin-bottom: 15px;
+        }
+
+        .toggle-password {
+            cursor: pointer;
+            color: #007bff;
+            font-size: 0.9rem;
+        }
+
+        .toggle-password:hover {
+            text-decoration: underline;
+        }
+
+        a {
+            display: block;
+            margin-top: 15px;
+            text-align: center;
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Login Page</h1>
+
+    <!-- Login Form -->
+    <form id="loginForm">
+        <div class="error" style="display: none;"></div>
+
+        <label for="username">Username</label><br />
+        <input type="text" id="username" placeholder="Enter your username" required /><br />
+
+        <label for="password">Password</label><br />
+        <input type="password" id="password" placeholder="Enter your password" required />
+        <span class="toggle-password" id="togglePassword">Show</span><br />
+
+        <input type="submit" value="Login" /><br />
+    </form>
+
+    <p>
+        <a href="/register">Don't have an account? Register</a>
+    </p>
+
+    <script>
+        // DOM Elements
+        const form = document.querySelector('#loginForm');
+        const username = document.querySelector('#username');
+        const password = document.querySelector('#password');
+        const display = document.querySelector('.error');
+        const togglePassword = document.querySelector('#togglePassword');
+
+        // Toggle password visibility
+        togglePassword.addEventListener('click', () => {
+            const isPasswordVisible = password.getAttribute('type') === 'password';
+            password.setAttribute('type', isPasswordVisible ? 'text' : 'password');
+            togglePassword.textContent = isPasswordVisible ? 'Hide' : 'Show';
+        });
+
+        // Form Submit Handler
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            display.style.display = 'none';
+            display.textContent = '';
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: username.value,
+                        password: password.value,
+                    }),
+                });
+
+                const data = await res.json();
+
+                if (res.status === 401 || res.status === 400) {
+                    display.style.display = 'block';
+                    display.textContent = data.message || 'Invalid username or password';
+                    return;
+                }
+
+                // Redirect based on user role
+                if (data.role === 'admin') {
+                    location.assign('/admin');
+                } else {
+                    location.assign('/basic');
+                }
+            } catch (err) {
+                console.error('Error:', err.message);
+                display.style.display = 'block';
+                display.textContent = 'An unexpected error occurred. Please try again.';
+            }
+        });
+    </script>
+</body>
+</html>
